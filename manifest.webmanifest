@@ -1,0 +1,11 @@
+{
+  "name": "Ototoxicity Monitor",
+  "short_name": "Ototox Monitor",
+  "description": "Serial audiogram monitoring for patients on ototoxic drugs, with ASHA change criteria.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F7F9FB",
+  "theme_color": "#17212E",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ototoxicity Monitor</title>
+<meta name="description" content="Serial audiogram monitoring for patients on cisplatin, carboplatin or aminoglycosides, flagging ASHA (1994) significant threshold shifts.">
+<meta name="theme-color" content="#17212E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="kit.css">
+<style>
+.plist{display:grid;gap:6px;margin-top:10px}
+.plist button{text-align:left;display:flex;justify-content:space-between;gap:8px;align-items:center;border-color:var(--line);background:var(--paper)}
+.plist button[aria-current="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink);background:var(--surface)}
+.thr{width:100%;border-collapse:collapse;font-size:.85rem}
+.thr th,.thr td{padding:3px 2px;text-align:center}
+.thr th{color:var(--muted);font-weight:700;font-size:.78rem}
+.thr td input{margin:0;padding:6px 2px;text-align:center;font-size:.88rem;min-width:44px}
+.thr th.r{color:var(--right)} .thr th.l{color:var(--left)}
+.ehf{background:color-mix(in srgb,var(--accent) 6%,transparent)}
+.shift{font-variant-numeric:tabular-nums}
+.shift.s10{color:var(--mid);font-weight:700} .shift.s20{color:var(--high);font-weight:700} .shift.nr{color:var(--high);font-weight:700}
+.shiftchart text{font-family:var(--font)}
+.verdict{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="brand"><img src="icon.svg" width="34" height="34" alt=""><h1><span data-i18n="appName"></span><small data-i18n="appSub"></small></h1></div>
+  <div class="top-tools"><span class="net" id="net" role="status" aria-live="polite"></span><label class="sr" for="lang">Language</label><select id="lang" class="lang"></select></div>
+</div></header>
+
+<main class="wrap">
+  <section class="intro">
+    <h2>Catch hearing change early, before it reaches speech frequencies</h2>
+    <p>Record a baseline before treatment and a test before each cycle. Every test is compared with the baseline using the ASHA (1994) criteria for a significant threshold shift, including the extended high frequencies where early change appears first.</p>
+  </section>
+
+  <div class="side">
+    <aside class="panel" aria-labelledby="pTitle">
+      <h3 id="pTitle">Patients</h3>
+      <label class="field" for="pCode">Patient code <span class="hint">Use a code, not a name.</span><input type="text" id="pCode" maxlength="30" autocomplete="off"></label>
+      <label class="field" for="pDrug">Ototoxic medicine
+        <select id="pDrug"><option>Cisplatin</option><option>Carboplatin</option><option>Amikacin</option><option>Kanamycin</option><option>Streptomycin</option><option>Gentamicin</option><option>Vancomycin + aminoglycoside</option><option>Other</option></select></label>
+      <label class="field" for="pStart">Treatment start date<input type="date" id="pStart"></label>
+      <p class="err" id="pErr" role="alert"></p>
+      <div class="actions"><button type="button" class="primary" id="pAdd">Add patient</button></div>
+      <div class="plist" id="plist"></div>
+      <div class="actions"><button type="button" class="small" id="csvAll">Download all as CSV</button></div>
+    </aside>
+
+    <section id="detail" aria-live="polite"></section>
+  </div>
+
+  <section class="panel" aria-labelledby="gTitle">
+    <h3 id="gTitle">How the comparison works</h3>
+    <p class="lead">A significant threshold shift (ASHA, 1994) is any one of the following, compared with baseline, in either ear:</p>
+    <ol>
+      <li><b>A.</b> A shift of 20 dB or more at any one test frequency.</li>
+      <li><b>B.</b> A shift of 10 dB or more at two adjacent test frequencies.</li>
+      <li><b>C.</b> Loss of response at three consecutive test frequencies where there was a response at baseline.</li>
+    </ol>
+    <p>A shift should be confirmed by a retest, ideally within 24 hours, before it is reported as ototoxic change. Report confirmed change to the treating oncologist or physician promptly; the decision to change treatment is theirs.</p>
+    <p class="muted small-text">Good practice: test before the first dose (or as soon as possible after it for aminoglycosides), before each chemotherapy cycle or regularly during aminoglycoside treatment, and after treatment ends. Include extended high frequencies and otoacoustic emissions where available.</p>
+    <p class="muted small-text">Sources: American Speech-Language-Hearing Association. Audiologic management of individuals receiving cochleotoxic drug therapy [Guidelines]. ASHA 1994;36(Suppl 12):11–19. American Academy of Audiology. Position statement and clinical practice guidelines: Ototoxicity monitoring. 2009.</p>
+  </section>
+
+  <section id="printArea" aria-hidden="true"></section>
+</main>
+
+<footer><div class="wrap">
+  <p data-i18n="disclaimer"></p>
+  <p>Data stays in this browser only. Download a CSV regularly as a backup.</p>
+  <p id="credit"></p>
+</div></footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="kit.js"></script>
+<script>
+const I18N_APP = { en:{ appName:"Ototoxicity Monitor", appSub:"Serial audiograms compared with baseline",
+  disclaimer:"A record-keeping and decision-support aid for audiologists. It does not replace clinical judgement or a confirmed retest." } };
+
+const KEY = "ototox-patients";
+const FREQS = [250,500,1000,2000,3000,4000,6000,8000,9000,10000,11200,12500,14000,16000];
+const EHF_FROM = 9000;
+let patients = store.get(KEY, []);
+let selId = patients[0]?.id || null;
+const fLabel = f => f >= 1000 ? (f/1000) + "k" : String(f);
+const save = () => store.set(KEY, patients);
+const sel = () => patients.find(p => p.id === selId);
+
+/* Parse a threshold cell: number, "NR" (no response) or blank (not tested) */
+function parseCell(v){
+  const s = String(v ?? "").trim().toUpperCase();
+  if (!s) return null;
+  if (s === "NR" || s === "N" ) return "NR";
+  const n = Number(s); return Number.isFinite(n) && n >= -10 && n <= 130 ? n : undefined;
+}
+
+/* ASHA 1994 criteria for one ear */
+function compareEar(base, now){
+  const shifts = FREQS.map(f => {
+    const b = base?.[f], c = now?.[f];
+    if (b == null || c == null) return {f, tested:false};
+    if (b === "NR") return {f, tested:true, shift:null, note:"baseline NR"};
+    if (c === "NR") return {f, tested:true, shift:null, lost:true};
+    return {f, tested:true, shift: c - b};
+  });
+  const tested = shifts.filter(s => s.tested);
+  const a = tested.filter(s => s.shift != null && s.shift >= 20).map(s => s.f);
+  const b = []; for (let i = 0; i < tested.length - 1; i++){ const x = tested[i], y = tested[i+1];
+    if (x.shift != null && y.shift != null && x.shift >= 10 && y.shift >= 10) b.push([x.f, y.f]); }
+  const c = []; for (let i = 0; i < tested.length - 2; i++){ if (tested[i].lost && tested[i+1].lost && tested[i+2].lost) c.push([tested[i].f, tested[i+1].f, tested[i+2].f]); }
+  return {shifts, a, b, c, met: a.length > 0 || b.length > 0 || c.length > 0};
+}
+const baselineOf = p => p.tests.slice().sort((x,y) => x.date.localeCompare(y.date)).find(t => t.baseline) || null;
+
+function criteriaText(r){
+  const out = [];
+  if (r.a.length) out.push(`A: ≥20 dB at ${r.a.map(fLabel).join(", ")} Hz`);
+  if (r.b.length) out.push(`B: ≥10 dB at ${r.b.map(p => p.map(fLabel).join("+")).join("; ")} Hz`);
+  if (r.c.length) out.push(`C: no response at ${r.c.map(p => p.map(fLabel).join("+")).join("; ")} Hz`);
+  return out;
+}
+
+/* ---- Rendering ---- */
+function renderList(){
+  $("#plist").innerHTML = patients.length ? patients.map(p => {
+    const base = baselineOf(p), last = p.tests.slice().sort((x,y)=>y.date.localeCompare(x.date))[0];
+    let flag = "";
+    if (base && last && last.id !== base.id){ const m = compareEar(base.R, last.R).met || compareEar(base.L, last.L).met; flag = m ? `<span class="pill high">Shift</span>` : `<span class="pill ok">Stable</span>`; }
+    else if (!base) flag = `<span class="pill muted">No baseline</span>`;
+    return `<button type="button" data-pid="${p.id}" aria-current="${p.id===selId}"><span><b>${esc(p.code)}</b><br><span class="muted small-text">${esc(p.drug)}, ${p.tests.length} test${p.tests.length===1?"":"s"}</span></span>${flag}</button>`;
+  }).join("") : `<p class="muted small-text">No patients yet.</p>`;
+}
+
+function thrGrid(prefix){
+  return `<div class="table-scroll"><table class="thr"><thead><tr><th>Hz</th>${FREQS.map(f=>`<th class="${f>=EHF_FROM?"ehf":""}">${fLabel(f)}</th>`).join("")}</tr></thead><tbody>
+    ${["R","L"].map(e => `<tr><th class="${e==="R"?"r":"l"}">${e==="R"?"Right":"Left"}</th>${FREQS.map(f => `<td class="${f>=EHF_FROM?"ehf":""}"><input type="text" inputmode="numeric" maxlength="3" data-${prefix}="${e}-${f}" aria-label="${e==="R"?"Right":"Left"} ${f} Hz"></td>`).join("")}</tr>`).join("")}
+  </tbody></table></div>`;
+}
+
+function shiftChart(r, ear){
+  const W = 640, H = 170, L = 34, T = 14, B = 24, pts = r.shifts;
+  const X = i => L + i * ((W - L - 10) / (FREQS.length - 1));
+  const Y = v => T + (Math.max(-20, Math.min(50, v)) + 20) * ((H - T - B) / 70);   // down = worse (positive shift)
+  let g = "";
+  [-20,-10,0,10,20,30,40,50].forEach(v => g += `<line x1="${L}" x2="${W-10}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v===10||v===20?"var(--mid)":"var(--line)"}" stroke-width="${v===0?1.4:.7}" ${v===10||v===20?'stroke-dasharray="4 3"':""}/><text x="${L-5}" y="${Y(v)+4}" text-anchor="end" font-size="10" fill="var(--muted)">${v}</text>`);
+  pts.forEach((s,i) => { g += `<text x="${X(i)}" y="${H-6}" text-anchor="middle" font-size="10" fill="var(--muted)">${fLabel(s.f)}</text>`;
+    if (!s.tested) return;
+    if (s.lost) g += `<text x="${X(i)}" y="${Y(45)}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--high)">NR</text>`;
+    else if (s.shift != null){ const c = s.shift >= 20 ? "var(--high)" : s.shift >= 10 ? "var(--mid)" : "var(--ok)";
+      g += `<line x1="${X(i)}" x2="${X(i)}" y1="${Y(0)}" y2="${Y(s.shift)}" stroke="${c}" stroke-width="10" stroke-linecap="butt"/>`; } });
+  const col = ear === "R" ? "var(--right)" : "var(--left)";
+  return `<div><div class="small-text" style="color:${col};font-weight:700">${ear==="R"?"Right ear":"Left ear"}: shift from baseline (dB, down = worse)</div><svg class="shiftchart" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" role="img" aria-label="Threshold shift by frequency, ${ear==="R"?"right":"left"} ear">${g}</svg></div>`;
+}
+
+function renderDetail(){
+  const p = sel();
+  if (!p){ $("#detail").innerHTML = `<div class="empty">Add a patient to start. Record the baseline audiogram first.</div>`; return; }
+  const tests = p.tests.slice().sort((x,y) => x.date.localeCompare(y.date));
+  const base = baselineOf(p);
+  const rows = tests.map(tst => {
+    const isBase = base && tst.id === base.id;
+    let res = "";
+    if (isBase) res = `<span class="pill info">Baseline</span>`;
+    else if (base){ const r = compareEar(base.R, tst.R), l = compareEar(base.L, tst.L);
+      res = (r.met || l.met) ? `<span class="pill high">Significant shift</span><div class="small-text">${[...criteriaText(r).map(x=>"R "+x), ...criteriaText(l).map(x=>"L "+x)].map(esc).join("<br>")}</div>` : `<span class="pill ok">No significant shift</span>`; }
+    else res = `<span class="pill muted">No baseline</span>`;
+    return `<tr><td class="num">${esc(fmtDate(tst.date))}</td><td>${res}${tst.retest?` <span class="pill info">Retest</span>`:""}</td><td class="small-text">${esc(tst.note||"")}</td><td><button type="button" class="small danger" data-tdel="${tst.id}">Delete</button></td></tr>`;
+  }).join("");
+  const last = tests[tests.length-1];
+  let compare = "";
+  if (base && last && last.id !== base.id){
+    const r = compareEar(base.R, last.R), l = compareEar(base.L, last.L);
+    compare = `<div class="panel" style="margin-top:16px"><h3>Latest test compared with baseline</h3>
+      <div class="verdict">${(r.met||l.met) ? `<span class="pill high">Meets ASHA criteria</span><span class="small-text">Confirm with a retest within 24 hours, then report to the treating team.</span>` : `<span class="pill ok">No significant shift</span>`}</div>
+      ${shiftChart(r,"R")}${shiftChart(l,"L")}</div>`;
+  }
+  $("#detail").innerHTML = `
+    <div class="panel">
+      <div class="head-row"><div><h3>${esc(p.code)}</h3><div class="muted small-text">${esc(p.drug)}${p.start?`, started ${esc(fmtDate(p.start))}`:""}</div></div>
+        <div class="actions" style="margin-top:0"><button type="button" class="small" id="printRep">Print report</button><button type="button" class="small danger" id="pDel">Delete patient</button></div></div>
+      ${tests.length ? `<div class="table-scroll"><table class="rec"><thead><tr><th>Date</th><th>Result</th><th>Note</th><th><span class="sr">Delete</span></th></tr></thead><tbody>${rows}</tbody></table></div>` : `<p class="muted">No tests yet. Add the baseline below.</p>`}
+    </div>
+    ${compare}
+    <div class="panel" style="margin-top:16px">
+      <h3>Add a test</h3>
+      <p class="lead">Thresholds in dB HL. Type <b>NR</b> for no response at the audiometer limit. Leave blank if not tested. Shaded columns are extended high frequencies.</p>
+      <div class="row3">
+        <label class="field" for="tDate">Test date<input type="date" id="tDate" value="${todayISO()}"></label>
+        <label class="field" for="tKind">Type<select id="tKind"><option value="monitor">Monitoring test</option><option value="baseline" ${base?"":"selected"}>Baseline</option><option value="retest">Retest to confirm a shift</option></select></label>
+        <label class="field" for="tNote">Note<input type="text" id="tNote" maxlength="80" placeholder="e.g. before cycle 3"></label>
+      </div>
+      <div style="margin-top:12px">${thrGrid("t")}</div>
+      <p class="err" id="tErr" role="alert"></p>
+      <div class="actions"><button type="button" class="primary" id="tAdd">Save test</button></div>
+    </div>`;
+}
+
+function render(){ renderList(); renderDetail(); }
+
+/* ---- Actions ---- */
+$("#pAdd").addEventListener("click", () => {
+  const code = $("#pCode").value.trim();
+  if (!code){ $("#pErr").textContent = "Enter a patient code."; return; }
+  if (patients.some(p => p.code.toLowerCase() === code.toLowerCase())){ $("#pErr").textContent = "That code already exists."; return; }
+  $("#pErr").textContent = "";
+  const p = {id: uid(), code, drug: $("#pDrug").value, start: $("#pStart").value || null, tests: []};
+  patients.push(p); selId = p.id; save(); $("#pCode").value = ""; render(); toast("Patient added");
+});
+$("#plist").addEventListener("click", e => { const b = e.target.closest("[data-pid]"); if (!b) return; selId = b.dataset.pid; render(); });
+$("#detail").addEventListener("click", e => {
+  const p = sel(); if (!p) return;
+  if (e.target.id === "tAdd"){
+    const R = {}, L = {}; let bad = false, any = false;
+    $$("[data-t]").forEach(inp => { const [ear, f] = inp.dataset.t.split("-"); const v = parseCell(inp.value);
+      if (v === undefined){ inp.setAttribute("aria-invalid","true"); bad = true; return; } inp.removeAttribute("aria-invalid");
+      if (v !== null){ (ear === "R" ? R : L)[f] = v; any = true; } });
+    if (bad){ $("#tErr").textContent = "Use numbers from −10 to 130, or NR."; return; }
+    if (!any){ $("#tErr").textContent = "Enter at least one threshold."; return; }
+    const kind = $("#tKind").value;
+    if (kind === "baseline") p.tests.forEach(x => x.baseline = false);
+    p.tests.push({id: uid(), date: $("#tDate").value || todayISO(), baseline: kind === "baseline", retest: kind === "retest", note: $("#tNote").value.trim(), R, L});
+    save(); render(); toast("Test saved");
+  }
+  if (e.target.dataset.tdel){ p.tests = p.tests.filter(x => x.id !== e.target.dataset.tdel); save(); render(); toast("Test deleted"); }
+  if (e.target.id === "pDel"){ if (confirm(`Delete ${p.code} and all their tests from this device? This cannot be undone.`)){ patients = patients.filter(x => x.id !== p.id); selId = patients[0]?.id || null; save(); render(); toast("Patient deleted"); } }
+  if (e.target.id === "printRep") printReport(p);
+});
+function printReport(p){
+  const tests = p.tests.slice().sort((x,y)=>x.date.localeCompare(y.date)), base = baselineOf(p);
+  const tbl = tests.map(tst => `<h3>${esc(fmtDate(tst.date))}${tst.baseline?" (baseline)":tst.retest?" (retest)":""}${tst.note?`: ${esc(tst.note)}`:""}</h3>
+    <table><tr><th>Ear</th>${FREQS.map(f=>`<th>${fLabel(f)}</th>`).join("")}</tr>
+    ${["R","L"].map(e => `<tr><td>${e}</td>${FREQS.map(f => { const v = tst[e][f]; let s = v ?? "";
+      if (base && !tst.baseline && typeof v === "number" && typeof base[e][f] === "number"){ const d = v - base[e][f]; if (d >= 10) s += ` (+${d})`; }
+      return `<td>${esc(s)}</td>`; }).join("")}</tr>`).join("")}</table>
+    ${base && !tst.baseline ? (() => { const r = compareEar(base.R, tst.R), l = compareEar(base.L, tst.L), c = [...criteriaText(r).map(x=>"Right "+x), ...criteriaText(l).map(x=>"Left "+x)];
+      return `<p><b>${c.length ? "Meets ASHA (1994) criteria: " + esc(c.join("; ")) : "No significant shift from baseline."}</b></p>`; })() : ""}`).join("");
+  printArea(`<h2>Ototoxicity monitoring report</h2><p>Patient code: <b>${esc(p.code)}</b>. Medicine: ${esc(p.drug)}. ${p.start?"Treatment start: "+esc(fmtDate(p.start))+".":""} Printed ${esc(fmtDate(new Date()))}.</p>
+    <p>Thresholds in dB HL; NR = no response. Numbers in brackets are shifts of 10 dB or more from baseline.</p>${tbl}
+    <div class="sig"><div>Audiologist (name, RCI number)</div><div>Date</div></div>`);
+}
+$("#csvAll").addEventListener("click", () => {
+  const rows = [["patient_code","medicine","test_date","type","ear",...FREQS.map(f=>f+"Hz"),"note"]];
+  patients.forEach(p => p.tests.forEach(tst => ["R","L"].forEach(e => rows.push([p.code, p.drug, tst.date, tst.baseline?"baseline":tst.retest?"retest":"monitor", e, ...FREQS.map(f => tst[e][f] ?? ""), tst.note||""]))));
+  downloadCSV(rows, `ototox-monitoring-${todayISO()}.csv`);
+});
+
+KIT.start({ i18n: I18N_APP, render, version: "0.1.0 (draft for clinical review)" });
+</script>
+</body>
+</html>
