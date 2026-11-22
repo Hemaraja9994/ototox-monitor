@@ -1,0 +1,17 @@
+[
+  { "id": "asha-1994", "title": "ASHA 1994 criteria for a significant shift", "tags": ["asha", "1994", "criteria", "shift", "significant", "20 db", "adjacent", "no response", "monitoring"],
+    "text": "ASHA defines an ototoxic threshold shift from baseline as: (A) 20 dB or more at any one test frequency; (B) 10 dB or more at two adjacent frequencies; or (C) loss of response at three consecutive frequencies where responses were previously obtained. Any one of these, confirmed by retest, is significant.",
+    "source": "American Speech-Language-Hearing Association. Audiologic management of individuals receiving cochleotoxic drug therapy. ASHA 36(Suppl 12):11–19", "year": 1994, "url": "https://www.asha.org/policy/gl1994-00003/", "checked": "Nov 2026" },
+  { "id": "ehf", "title": "Extended high frequencies change first", "tags": ["extended high frequency", "ehf", "9000", "16000", "early", "basal", "cochlea", "aminoglycoside", "cisplatin"],
+    "text": "Ototoxic damage from aminoglycosides and platinum drugs starts at the base of the cochlea, so the earliest threshold changes appear in the extended high frequencies (9–16 kHz), often before the conventional range or the patient notices. Monitoring these frequencies catches damage earliest.",
+    "source": "Konrad-Martin D, et al. Ototoxicity: early detection and monitoring. Am J Audiol", "year": 2018, "checked": "Nov 2026" },
+  { "id": "retest", "title": "Confirm a shift with a prompt retest", "tags": ["retest", "confirm", "24 hours", "variability", "false positive", "report"],
+    "text": "A single shift can reflect test variability, debris or middle-ear change. Confirm an apparent significant shift with a retest, ideally within 24 hours, before reporting it so the treating team can weigh dose changes against the risk to hearing.",
+    "source": "American Academy of Audiology. Position statement: ototoxicity monitoring", "year": 2009, "url": "https://www.audiology.org/", "checked": "Nov 2026" },
+  { "id": "baseline", "title": "Baseline before, or as early as possible", "tags": ["baseline", "before treatment", "reference", "pre-treatment", "schedule", "monitoring interval"],
+    "text": "A baseline audiogram before the first ototoxic dose (or as soon as possible after) is the reference every later test is compared with. Without it, change cannot be judged. Monitoring frequency follows the drug and protocol — often before each cycle or at set intervals.",
+    "source": "American Speech-Language-Hearing Association. Ototoxicity monitoring guidelines", "year": 1994, "url": "https://www.asha.org/policy/gl1994-00003/", "checked": "Nov 2026" },
+  { "id": "drugs", "title": "Common ototoxic drugs", "tags": ["cisplatin", "carboplatin", "aminoglycoside", "gentamicin", "amikacin", "furosemide", "vancomycin", "drug"],
+    "text": "The drugs most often monitored are platinum chemotherapy (cisplatin, carboplatin) and aminoglycoside antibiotics (gentamicin, amikacin, streptomycin, used in TB and sepsis). Loop diuretics and some other agents add risk, especially in combination and with kidney impairment.",
+    "source": "World Health Organization; ASHA cochleotoxic drug therapy guidance", "year": 1994, "url": "https://www.asha.org/policy/gl1994-00003/", "checked": "Nov 2026" }
+]

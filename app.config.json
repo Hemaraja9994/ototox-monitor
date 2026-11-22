@@ -1,0 +1,1 @@
+{ "name": "Ototoxicity Monitor", "shortName": "Ototox Monitor", "description": "Track serial pure-tone audiograms per patient on ototoxic drugs, compare each test with the baseline using the ASHA 1994 criteria including extended high frequencies, see the shift per frequency and print a report. Works offline; data stays on the device.", "version": "1.0.0" }
