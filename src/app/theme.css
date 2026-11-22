@@ -1,0 +1,38 @@
+.theme-src{}
+/* ===== ototox-monitor theme ===== */
+:root{
+  --color-paper: #F6F6F3;
+  --color-surface: #FFFFFF;
+  --color-ink: #2A2D34;
+  --color-muted: #565B66;
+  --color-line: #D7D8D2;
+  --color-track: #E8E8E4;
+  --color-accent: #9A3412;
+  --color-grid: #E9E9E4;
+  --font-sans: "IBM Plex Sans","Atkinson Hyperlegible",system-ui,sans-serif;
+  --font-display: "Archivo","Atkinson Hyperlegible",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+  --color-paper: #17181C;
+  --color-surface: #20222A;
+  --color-ink: #ECEDEA;
+  --color-accent: #F59E6B;
+  --color-grid: #24262E;
+  --color-muted: #A3B1C2;
+  --color-line: #2B3A4B;
+  --color-track: #22303F;
+  }
+}
+body{
+  background-image:
+    linear-gradient(var(--color-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-grid) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+h1,h2,h3,h4{ font-family: var(--font-display); }
+header.bg-ink{
+  background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.055) 0 2px, transparent 2px 15px);
+  background-size: auto;
+}
+
